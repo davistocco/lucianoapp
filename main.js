@@ -4,6 +4,7 @@ import cors from 'cors';
 import bodyParser from 'body-parser';
 import Discord from './services/discord.js'
 import Wpp from './services/wpp.js';
+import _ from 'lodash';
 
 const wpp = new Wpp({
     baseURL: process.env.ZAPI_BASE_URL,
@@ -23,12 +24,30 @@ app.get('/', (req, res) => {
     res.status(200).send();
 });
 
+// TODO: refactor this endpoint by creating dedicated classes
 app.post('/hook/on-message-received', async (req, res) => {
-    const { chatName, phone, text, isGroup } = req.body;
-    if (isGroup) res.status(500).json({ error: 'Not implemented yet' });
-    await discord.sendMessage({ name: chatName, phone, message: text?.message });
-    res.status(200).send();
+    try {
+        await handleMessage(req);
+        return res.status(200).send();
+    } catch (e) {
+        return res.status(500).json(e);
+    }
 })
+
+async function handleMessage(req) {
+    const body = onMessageReceivedRequestBody(req);
+    if (body.isGroup) throw new Error('Groups not implemented yet');
+    await discord.sendMessage({
+        name: body.chatName,
+        phone: body.phone,
+        text: body.text,
+        image: body.image
+    });
+}
+
+function onMessageReceivedRequestBody(req) {
+    return _.pick(req.body, ['isGroup', 'chatName', 'phone', 'text', 'image']);
+}
 
 app.listen(port, () => {
     console.log(`App listening on port ${port}`);

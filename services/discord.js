@@ -1,4 +1,4 @@
-import { ChannelType, Client, GatewayIntentBits } from 'discord.js';
+import { AttachmentBuilder, ChannelType, Client, GatewayIntentBits } from 'discord.js';
 
 const intents = [
     GatewayIntentBits.DirectMessages,
@@ -57,9 +57,40 @@ export default class Discord {
         return guild.channels.cache.find(channel => channel.topic.includes(topic));
     }
 
-    async sendMessage({ name, phone, message }) {
-        if (!message) return;
+    async sendMessage(data) {
+        const { name, phone, text, image } = data;
         const channel = await this.getOrCreateContactChannel({ name, phone });
-        await channel.send(message);
+        const type = this.getMessageType({ text, image });
+        switch (type) {
+            case 'text':
+                await this.sendTextMessage({ channel, text });
+                break;
+            case 'image':
+                await this.sendImage({ channel, image });
+                break;
+            default:
+                throw new Error('Message type not implemented');
+        }
+    }
+
+    /**
+     * Since zapi api does not provide message type as a value
+     * we need to discover it manually.
+     */
+    getMessageType({ text, image }) {
+        if (text) return 'text';
+        if (image) return 'image';
+    }
+
+    async sendTextMessage({ channel, text }) {
+        if (!text?.message) return;
+        await channel.send(text.message);
+    }
+
+    async sendImage({ channel, image }) {
+        const { caption, imageUrl } = image;
+        if (!imageUrl) return;
+        const attachment = new AttachmentBuilder(imageUrl);
+        await channel.send({ content: caption, files: [attachment] })
     }
 }
