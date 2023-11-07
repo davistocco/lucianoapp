@@ -14,4 +14,12 @@ export default class Wpp {
             console.log(e.response.data);
         }
     }
+
+    async sendImage({ phone, caption, image }) {
+        try {
+            await this.api.post('/send-image', { phone, caption, image });
+        } catch (e) {
+            console.log(e.response.data);
+        }
+    }
 }

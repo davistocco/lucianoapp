@@ -28,8 +28,18 @@ export default class Discord {
             if (message.author.bot) return;
             const phone = this.getPhoneInsideTopic(message.channel.topic);
             if (!phone) return;
-            await this.wpp.sendTextMessage({ phone, message: message.content });
+            // TODO: refactor message handler
+            const imageUrl = this.getMessageImageIfExists(message);
+            if (imageUrl) {
+                await this.wpp.sendImage({ phone, caption: message.content, image: imageUrl });
+            } else {
+                await this.wpp.sendTextMessage({ phone, message: message.content });
+            }
         });
+    }
+
+    getMessageImageIfExists(message) {
+        return message.attachments?.first()?.url;
     }
 
     onReady() {
